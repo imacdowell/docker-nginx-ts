@@ -1,12 +1,12 @@
 ARG NGINX_VERSION=1.23.1
-ARG NGINX_RTMP_VERSION=1.2.2
+#ARG NGINX_RTMP_VERSION=1.2.2
 ARG FFMPEG_VERSION=5.1
 
 ##############################
 # Build the NGINX-build image.
-FROM alpine:3.16.1 as build-nginx
+FROM alpine:3.17.2 as build-nginx
 ARG NGINX_VERSION
-ARG NGINX_RTMP_VERSION
+#ARG NGINX_RTMP_VERSION
 ARG MAKEFLAGS="-j4"
 
 # Build dependencies.
@@ -14,6 +14,7 @@ RUN apk add --no-cache \
   build-base \
   ca-certificates \
   curl \
+  git \
   gcc \
   libc-dev \
   libgcc \
@@ -36,16 +37,19 @@ RUN wget https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz && \
   rm nginx-${NGINX_VERSION}.tar.gz
 
 # Get nginx-rtmp module.
-RUN wget https://github.com/arut/nginx-rtmp-module/archive/v${NGINX_RTMP_VERSION}.tar.gz && \
-  tar zxf v${NGINX_RTMP_VERSION}.tar.gz && \
-  rm v${NGINX_RTMP_VERSION}.tar.gz
+#RUN wget https://github.com/arut/nginx-rtmp-module/archive/v${NGINX_RTMP_VERSION}.tar.gz && \
+#  tar zxf v${NGINX_RTMP_VERSION}.tar.gz && \
+#  rm v${NGINX_RTMP_VERSION}.tar.gz
+
+# Get nginx-ts module.
+RUN git clone https://github.com/arut/nginx-ts-module.git
 
 # Compile nginx with nginx-rtmp module.
 WORKDIR /tmp/nginx-${NGINX_VERSION}
 RUN \
   ./configure \
   --prefix=/usr/local/nginx \
-  --add-module=/tmp/nginx-rtmp-module-${NGINX_RTMP_VERSION} \
+  --add-module=/tmp/nginx-ts-module \
   --conf-path=/etc/nginx/nginx.conf \
   --with-threads \
   --with-file-aio \
@@ -58,7 +62,7 @@ RUN \
 
 ###############################
 # Build the FFmpeg-build image.
-FROM alpine:3.16.1 as build-ffmpeg
+FROM alpine:3.17.2 as build-ffmpeg
 ARG FFMPEG_VERSION
 ARG PREFIX=/usr/local
 ARG MAKEFLAGS="-j4"
@@ -131,11 +135,11 @@ RUN rm -rf /var/cache/* /tmp/*
 
 ##########################
 # Build the release image.
-FROM alpine:3.16.1
+FROM alpine:3.17.2
 LABEL MAINTAINER Alfred Gutierrez <alf.g.jr@gmail.com>
 
 # Set default ports.
-ENV HTTP_PORT 80
+ENV HTTP_PORT 8000
 ENV HTTPS_PORT 443
 ENV RTMP_PORT 1935
 
@@ -164,13 +168,14 @@ COPY --from=build-ffmpeg /usr/lib/libfdk-aac.so.2 /usr/lib/libfdk-aac.so.2
 
 # Add NGINX path, config and static files.
 ENV PATH "${PATH}:/usr/local/nginx/sbin"
-COPY nginx.conf /etc/nginx/nginx.conf.template
-RUN mkdir -p /opt/data && mkdir /www
+#COPY nginx.conf /etc/nginx/nginx.conf.template
+COPY nginx.conf /etc/nginx/nginx.conf
+RUN mkdir -p /opt/data && mkdir -p /opt/data/hls && mkdir /www
 COPY static /www/static
 
-EXPOSE 1935
-EXPOSE 80
+#EXPOSE 1935
+EXPOSE 8000
 
-CMD envsubst "$(env | sed -e 's/=.*//' -e 's/^/\$/g')" < \
-  /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && \
-  nginx
+#CMD echo "docker starting..." && /usr/local/nginx
+#CMD nginx
+#ENTRYPOINT ping localhost 
