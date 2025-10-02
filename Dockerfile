@@ -5,12 +5,13 @@ ARG FFMPEG_VERSION=5.1
 ##############################
 # Build the NGINX-build image.
 FROM alpine:3.17.2 as build-nginx
+#FROM alpine:3.19 as build-nginx
 ARG NGINX_VERSION
 #ARG NGINX_RTMP_VERSION
 ARG MAKEFLAGS="-j4"
 
 # Build dependencies.
-RUN apk add --no-cache \
+RUN apk update && apk add --no-cache \
   build-base \
   ca-certificates \
   curl \
@@ -42,7 +43,15 @@ RUN wget https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz && \
 #  rm v${NGINX_RTMP_VERSION}.tar.gz
 
 # Get nginx-ts module.
-RUN git clone https://github.com/arut/nginx-ts-module.git
+#RUN git clone https://github.com/arut/nginx-ts-module.git
+
+#RUN --mount=type=bind,source=code,target=/nginx-ts-module \
+#     echo "Contents of /nginx-ts-module:" && \    
+#     ls -la /nginx-ts-module
+
+#RUN --mount=type=bind,source=code,target=/nginx-ts-module \
+
+COPY nginx-ts-module /tmp/nginx-ts-module
 
 # Compile nginx with nginx-rtmp module.
 WORKDIR /tmp/nginx-${NGINX_VERSION}
@@ -169,9 +178,9 @@ COPY --from=build-ffmpeg /usr/lib/libfdk-aac.so.2 /usr/lib/libfdk-aac.so.2
 # Add NGINX path, config and static files.
 ENV PATH "${PATH}:/usr/local/nginx/sbin"
 #COPY nginx.conf /etc/nginx/nginx.conf.template
-COPY nginx.conf /etc/nginx/nginx.conf
+COPY docker-nginx-ts/nginx.conf /etc/nginx/nginx.conf
 RUN mkdir -p /opt/data && mkdir -p /opt/data/hls && mkdir /www
-COPY static /www/static
+COPY docker-nginx-ts/static /www/static
 
 #EXPOSE 1935
 EXPOSE 8000
