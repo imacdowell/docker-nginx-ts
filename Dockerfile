@@ -181,6 +181,7 @@ ENV PATH "${PATH}:/usr/local/nginx/sbin"
 COPY docker-nginx-ts/nginx.conf /etc/nginx/nginx.conf
 RUN mkdir -p /opt/data && mkdir -p /opt/data/hls && mkdir /www && mkdir /var/log/nginx
 COPY docker-nginx-ts/static /www/static
+COPY docker-nginx-ts/static /usr/local/nginx/html/
 
 #EXPOSE 1935
 EXPOSE 8000
