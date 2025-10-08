@@ -179,7 +179,7 @@ COPY --from=build-ffmpeg /usr/lib/libfdk-aac.so.2 /usr/lib/libfdk-aac.so.2
 ENV PATH "${PATH}:/usr/local/nginx/sbin"
 #COPY nginx.conf /etc/nginx/nginx.conf.template
 COPY docker-nginx-ts/nginx.conf /etc/nginx/nginx.conf
-RUN mkdir -p /opt/data && mkdir -p /opt/data/hls && mkdir /www
+RUN mkdir -p /opt/data && mkdir -p /opt/data/hls && mkdir /www && mkdir /var/log/nginx
 COPY docker-nginx-ts/static /www/static
 
 #EXPOSE 1935
